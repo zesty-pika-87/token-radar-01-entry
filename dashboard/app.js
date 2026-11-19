@@ -59,6 +59,32 @@
     return '<div class="stat"><div class="num">' + esc(s.n) + '</div><div class="lbl">' + esc(s.l) + '</div></div>';
   }).join('');
 
+  /* ---- category value strip: top 8 categories by total implied value ---- */
+  (function renderCatStrip() {
+    var totals = {};
+    var grand = 0;
+    rows.forEach(function (r) {
+      var c = r.category || 'Uncategorized';
+      totals[c] = (totals[c] || 0) + r.implied_value_usd;
+      grand += r.implied_value_usd;
+    });
+    var top = Object.keys(totals).map(function (c) {
+      var mult = R.multiples.global_median;
+      R.multiples.by_category.forEach(function (e) { if (e.category === c) mult = e.multiple; });
+      return { category: c, total: totals[c], multiple: mult };
+    }).sort(function (a, b) { return b.total - a.total; }).slice(0, 8);
+    var max = top.length ? top[0].total : 1;
+    $('catstrip').innerHTML =
+      '<div class="catstrip-head"><b>Implied value by category</b><span>top 8 of ' + Object.keys(totals).length +
+      ' categories · ' + fmtMoney(grand) + ' total · multiple used</span></div>' +
+      '<div class="catgrid">' + top.map(function (t) {
+        var pct = Math.max(2, Math.round((t.total / max) * 100));
+        return '<div><div class="catline"><span class="catname">' + esc(t.category) + '</span>' +
+          '<span class="catval"><b>' + fmtMoney(t.total) + '</b> · ' + dec(t.multiple, 3) + '×</span></div>' +
+          '<div class="catbar"><i style="width:' + pct + '%"></i></div></div>';
+      }).join('') + '</div>';
+  })();
+
   /* ---- filter options ---- */
   var cats = [], chains = [];
   rows.forEach(function (r) {
