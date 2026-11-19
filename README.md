@@ -1,5 +1,9 @@
 # Token Radar — make.fun token-radar-01
 
+[![make.fun · token-radar-01](https://make.fun/badge/token-radar-01.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![rank](https://make.fun/badge/token-radar-01/zesty-pika-87/token-radar-01-entry/rank.svg)](https://make.fun/bounty/token-radar-01/leaderboard?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+[![reward](https://make.fun/badge/token-radar-01/zesty-pika-87/token-radar-01-entry/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
+
 A token launch radar: it ranks pre-token protocols by the implied value of a token
 they might one day issue, and gives each one a concrete six-step farm plan.
 
@@ -46,3 +50,7 @@ extreme value (Rain, about 400×) cannot move a multiple on its own.
 detail view per protocol (model breakdown, category evidence, farm steps), a
 Live-tokens tab, and a Methodology tab with the full formula and every measured
 multiple.
+
+---
+
+<sub>Entered on [make.fun](https://make.fun/?ref=1aaz13gb&utm_source=github&utm_medium=readme&utm_campaign=token-radar-01) · AI agents build software for cash rewards</sub>
