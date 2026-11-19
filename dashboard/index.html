@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Token Radar — pre-token protocols ranked by implied value</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="mark">◉</div>
+    <div>
+      <h1>Token Radar</h1>
+      <p class="tagline">What would a protocol&rsquo;s token be worth if it launched today?</p>
+    </div>
+  </div>
+  <div class="meta">
+    <span class="pill">model <b>radar-2</b></span>
+    <span class="pill">snapshot <b id="meta-asof">—</b></span>
+    <span class="pill">source <b>DefiLlama</b></span>
+  </div>
+</header>
+
+<section class="stats" id="stats"></section>
+
+<nav class="tabs" aria-label="Views">
+  <button type="button" class="tab active" data-tab="board">Board</button>
+  <button type="button" class="tab" data-tab="live">Live tokens</button>
+  <button type="button" class="tab" data-tab="method">Methodology</button>
+</nav>
+
+<main>
+  <section id="panel-board" class="panel">
+    <div class="controls">
+      <input id="q" type="search" placeholder="Search name, category or chain…" aria-label="Search">
+      <select id="cat" aria-label="Category"><option value="all">All categories</option></select>
+      <select id="chain" aria-label="Chain"><option value="all">All chains</option></select>
+      <label class="check"><input id="watch-only" type="checkbox"> Watchlist only</label>
+      <select id="sort" aria-label="Sort by">
+        <option value="implied">Sort: implied value</option>
+        <option value="tvl">Sort: TVL</option>
+        <option value="change">Sort: 7-day change</option>
+        <option value="age">Sort: age</option>
+      </select>
+      <span class="count" id="count"></span>
+    </div>
+    <div class="tablewrap">
+      <table id="board">
+        <thead>
+          <tr><th class="num">#</th><th>Protocol</th><th class="num">TVL</th><th class="num">7d</th><th class="num">Age</th><th class="num">Implied value</th><th>Token</th></tr>
+        </thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+    <p class="hint">Click a row to open its detail: the model&rsquo;s breakdown, the category evidence and the six farm steps.</p>
+    <section id="detail" class="detail" hidden></section>
+  </section>
+
+  <section id="panel-live" class="panel" hidden>
+    <p class="intro">These protocols already have a token that trades, so the board never ranks them. Their
+    market-cap-to-TVL ratios are the evidence the model&rsquo;s category multiples are measured from —
+    the market&rsquo;s own price for one dollar of TVL.</p>
+    <div class="tablewrap">
+      <table id="live">
+        <thead>
+          <tr><th class="num">#</th><th>Protocol</th><th class="num">TVL</th><th class="num">Market cap</th><th class="num">mcap / TVL</th></tr>
+        </thead>
+        <tbody id="live-rows"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="panel-method" class="panel" hidden>
+    <h2>How the radar works</h2>
+    <p>Every number below is measured from the snapshot at run time by the program that built this page
+    (<code>lib/model.ts</code>: <code>measureMultiples</code> scores the market, <code>scoreProtocol</code>
+    scores every row the same way). No protocol name is hardcoded anywhere in the model.</p>
+    <h3>The formula</h3>
+    <p class="formula">implied&nbsp;=&nbsp;TVL&nbsp;&times;&nbsp;category&nbsp;multiple&nbsp;&times;&nbsp;growth&nbsp;&times;&nbsp;maturity&nbsp;&times;&nbsp;chain</p>
+    <ul>
+      <li><b>Category multiple.</b> For each category, the median mcap/TVL ratio of the live protocols
+      in it, shrunk toward the global median with a prior of 3: <code>(n &times; median + 3 &times; global) / (n + 3)</code>,
+      clamped to [0.02, 1.0]. A category with no live protocol takes the global median.</li>
+      <li><b>Growth.</b> 7-day TVL change, clamped to [−50%, +100%]; multiplier <code>1 + (growth / 100) &times; 0.5</code>.</li>
+      <li><b>Maturity.</b> Days from <code>listed_at</code> to the snapshot date (365 when unknown);
+      multiplier <code>0.6 + min(age, 1095) / 1095 &times; 0.4</code>.</li>
+      <li><b>Chains.</b> <code>1 + min(chains − 1, 4) &times; 0.02</code>, at most 1.08.</li>
+    </ul>
+    <h3>Category multiples measured from this snapshot</h3>
+    <div class="tablewrap">
+      <table id="multiples">
+        <thead>
+          <tr><th>Category</th><th class="num">Live protocols</th><th class="num">Median mcap / TVL</th><th class="num">Multiple used</th></tr>
+        </thead>
+        <tbody id="mult-rows"></tbody>
+      </table>
+    </div>
+    <h3>Read this honestly</h3>
+    <ul>
+      <li>The board says a protocol <b>records no token</b>, never that it has none: DefiLlama&rsquo;s record
+      is not proof, and a protocol on the board may still have a token its record does not carry.</li>
+      <li>The implied value is <b>our model&rsquo;s claim, not a prediction or a promise</b> that a token
+      will launch, or at any price.</li>
+      <li>Live-token protocols are kept apart from the board on purpose: the board ranks what has not
+      launched yet, and the Live tab shows the market values the multiples are measured from.</li>
+    </ul>
+    <p class="fine" id="source-line"></p>
+  </section>
+</main>
+
+<footer>
+  <p>Token Radar · model radar-2 · built from a sealed DefiLlama snapshot. Implied values are the model&rsquo;s
+  own claim; farm steps are a plan, not advice, and never pay anyone to claim for you.</p>
+</footer>
+<script src="../data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
