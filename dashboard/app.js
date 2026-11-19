@@ -31,7 +31,8 @@
   function fmtPct(v) {
     if (v === null || v === undefined) return '<span class="flat">—</span>';
     var cls = v > 0 ? 'up' : v < 0 ? 'down' : 'flat';
-    return '<span class="' + cls + '">' + (v > 0 ? '+' : '') + dec(v, 1) + '%</span>';
+    var shown = Math.abs(v) < 0.05 && v !== 0 ? dec(v, 2) : dec(v, 1);
+    return '<span class="' + cls + '">' + (v > 0 ? '+' : '') + shown + '%</span>';
   }
   function fmtAge(days) {
     if (days === null || days === undefined) return '—';
@@ -113,7 +114,7 @@
   }
 
   function stepHtml(step) {
-    var m = step.match(/^(.*?) Cost: (.*?) Time: (.*?)\.?$/);
+    var m = step.match(/^(.*?) Cost: (.*?)\. Time: (.*?)\.?$/);
     if (!m) return esc(step);
     return esc(m[1]) + ' <b>Cost:</b> ' + esc(m[2]) + '. <b>Time:</b> ' + esc(m[3]) + '.';
   }
@@ -125,7 +126,7 @@
     var ev;
     if (mult) {
       ev = 'Category <b>' + esc(r.category || 'Uncategorized') + '</b>: <b>' + mult.live_n + '</b> live protocol' +
-        (mult.live_n === 1 ? '' : 's') + ' trade at a median mcap/TVL of <b>' + dec(mult.live_median, 3) +
+        (mult.live_n === 1 ? ' trades' : 's trade') + ' at a median mcap/TVL of <b>' + dec(mult.live_median, 3) +
         '×</b>; shrunk toward the global median <b>' + dec(R.multiples.global_median, 3) + '×</b> with a prior of 3, ' +
         'the multiple used is <b>' + dec(m.category_multiple, 3) + '×</b>.';
     } else {
@@ -134,10 +135,10 @@
     }
     var eq = [
       ['TVL', fmtMoney(r.tvl_usd)],
-      ['× multiple', dec(m.category_multiple, 3) + '×'],
-      ['× growth', dec(m.growth_multiplier, 3) + '×'],
-      ['× maturity', dec(m.maturity_multiplier, 3) + '×'],
-      ['× chains', dec(m.chain_multiplier, 3) + '×'],
+      ['multiple', dec(m.category_multiple, 3) + '×'],
+      ['growth', dec(m.growth_multiplier, 3) + '×'],
+      ['maturity', dec(m.maturity_multiplier, 3) + '×'],
+      ['chains', dec(m.chain_multiplier, 3) + '×'],
     ];
     var eqHtml = eq.map(function (c, i) {
       return (i ? '<span class="op">×</span>' : '') +

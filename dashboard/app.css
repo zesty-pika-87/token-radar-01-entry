@@ -50,7 +50,7 @@ code { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; 
   background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius);
   padding: 14px 16px;
 }
-.stat .num { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; }
+.stat .num { font-size: 26px; font-weight: 700; letter-spacing: -0.5px; text-align: left; }
 .stat .num em { font-style: normal; color: var(--accent); }
 .stat .lbl { color: var(--muted); font-size: 13px; margin-top: 2px; }
 

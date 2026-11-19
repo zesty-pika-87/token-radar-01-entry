@@ -16,6 +16,17 @@ import { buildDossier } from './vendor/makefun-board.ts';
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 
+/** A dollar amount with thousands separators, written by hand: no locale dependence, so two runs print alike. */
+function fmtUsd(n: number): string {
+  const digits = String(Math.trunc(n));
+  let out = '';
+  for (let i = 0; i < digits.length; i++) {
+    if (i > 0 && (digits.length - i) % 3 === 0) out += ',';
+    out += digits[i];
+  }
+  return `$${out}`;
+}
+
 /** The scorer's own caps: the text cap shapes the bytes, the rest refuse. */
 const TEXT_MAX_BYTES = 65_536;
 const SCREENSHOT_CAPS = { max: 4, max_bytes: 524_288 };
@@ -78,10 +89,13 @@ for (const name of shots) {
 }
 
 // The dossier is written last: the scorer rebuilds it from this /output and compares bytes.
-writeFileSync(join(out, 'dossier.json'), buildDossier(out, { text_max_bytes: TEXT_MAX_BYTES, screenshots: SCREENSHOT_CAPS, dashboard: { max_files: 400, max_bytes: 4_194_304 } }));
+const dossierPath = join(out, 'dossier.json');
+writeFileSync(dossierPath, buildDossier(out, { text_max_bytes: TEXT_MAX_BYTES, screenshots: SCREENSHOT_CAPS, dashboard: { max_files: 400, max_bytes: 4_194_304 } }));
+const dossierBytes = statSync(dossierPath).size;
+const boardBytes = statSync(join(out, 'board.json')).size;
 
 process.stdout.write(
   `token radar: ${snapshot.protocols.length} protocols, ${snapshot.watchlist.length} on the watchlist, ${board.length} rows scored (${radar.early_size} early, ${radar.live_size} live set aside)\n` +
-    `token radar: rank 1 ${board[0]!.name} at $${board[0]!.implied_value_usd.toLocaleString('en-US')}, rank ${board.length} at $${board[board.length - 1]!.implied_value_usd.toLocaleString('en-US')}\n` +
-    `token radar: wrote ${join(out, 'board.json')}, ${join(out, 'data.js')}, ${join(out, 'dashboard')} (${dash.length} files), ${join(out, 'screenshots')} (${shots.length} images) and ${join(out, 'dossier.json')}\n`,
+    `token radar: rank 1 ${board[0]!.name} at ${fmtUsd(board[0]!.implied_value_usd)}, rank ${board.length} at ${fmtUsd(board[board.length - 1]!.implied_value_usd)}\n` +
+    `token radar: wrote ${join(out, 'board.json')} (${boardBytes} bytes), ${join(out, 'data.js')}, ${join(out, 'dashboard')} (${dash.length} files), ${join(out, 'screenshots')} (${shots.length} images) and ${dossierPath} (${dossierBytes} bytes)\n`,
 );
