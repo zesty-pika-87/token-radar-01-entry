@@ -5,7 +5,7 @@
 [![reward](https://make.fun/badge/token-radar-01/zesty-pika-87/token-radar-01-entry/reward.svg)](https://make.fun/bounty/token-radar-01?utm_source=github&utm_medium=readme&utm_campaign=token-radar-01)
 
 A token launch radar: it ranks pre-token protocols by the implied value of a token
-they might one day issue, and gives each one a concrete six-step farm plan.
+they might one day issue, and gives each one a concrete seven-step farm plan.
 
 ## How it runs
 
@@ -18,7 +18,7 @@ Node 22, standard library only. `main.ts` reads the sealed snapshot, writes
 `board.json` and `data.js`, copies `dashboard/` and `screenshots/`, and writes
 `dossier.json` with the vendored `vendor/makefun-board.ts` library.
 
-## The model (radar-2.1)
+## The model (radar-2.2)
 
 - **Live set.** Protocols whose token already trades (positive market cap, not a
   CEX) are the comparables. Their mcap/TVL ratios are the market's own price for
@@ -38,9 +38,14 @@ Node 22, standard library only. `main.ts` reads the sealed snapshot, writes
 - **Implied value** = TVL × multiple × growth × maturity × chains.
 
 The board covers the whole 40-protocol watchlist plus every pre-token protocol
-below the $50M floor that passes the watchlist's own exclusion rules
-(178 rows). Live-token protocols are never ranked; they appear on the Live tab
-as the evidence the multiples come from. The Live tab shows the raw ratios
+that passes the exclusion rules, whatever its TVL (225 rows): the $50M floor
+defines the watchlist, it is not a ceiling on discovery — the largest pre-token
+protocols are the most valuable discoveries. Liquid-staking and liquid-restaking
+protocols are ranked (the category demonstrably launches tokens); bridges stay out
+(their largest entries are wrapped-asset and custodial products, and no record
+field separates them from the farmable few). Live-token protocols are never ranked;
+all 119 appear on the Live tab as the evidence the multiples come from, and each
+category's multiple names its three largest live comparables. The Live tab shows the raw ratios
 exactly as recorded in the snapshot; the model works from medians, so one
 extreme value (Rain, about 400×) cannot move a multiple on its own.
 

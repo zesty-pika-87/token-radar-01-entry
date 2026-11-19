@@ -8,9 +8,13 @@
 // Iteration 2 (2026-11-19): the dashboard gained the seven page features the dev judge
 // missed against rung r1 — sortable headers, pins, a compare dialog, a command palette,
 // a live what-if model sandbox, CSV export and a tabbed detail drawer — plus log-scale
-// bars, all client-side from the same window.RADAR. The model (lib/model.ts) is untouched,
-// so board.json and data.js are byte-identical to iteration 1. Four screenshots are now
-// required: the board, a detail view, a filtered view and one feature view.
+// bars, all client-side from the same window.RADAR. The model moved to radar-2.2 in the
+// same iteration, deliberately: the floor no longer caps discovery (225 rows, was 178),
+// liquid-staking/restaking protocols are ranked, every live comparable is shown, and each
+// farm plan has seven steps. board.json and data.js therefore differ from iteration 1 by
+// design; the new board is verified by the same gate (monotone ranks, 40/40 watchlist,
+// every implied value recomputed from the formula) before it ships. Four screenshots are
+// now required: the board, a detail view, a filtered view and one feature view.
 //
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p /tmp/tr-out && MAKEFUN_OUTPUT_DIR=/tmp/tr-out node main.ts --input input/snapshot.json

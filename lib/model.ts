@@ -1,4 +1,4 @@
-// radar-2.1: the token launch radar's model.
+// radar-2.2: the token launch radar's model.
 //
 // One sealed snapshot in, one ranked board out. Every number the model uses comes from the
 // snapshot itself: the category multiples are measured at run time from the protocols whose
@@ -23,10 +23,15 @@
 //                 at least 1, at most 1e14.
 //
 // The board ranks every protocol on the snapshot's watchlist plus every pre-token protocol
-// below the watchlist floor that passes the watchlist's own exclusion rules (not a bridge,
-// liquid-staking or exchange product, not a wrapped or staked product, not an exchange's
-// own product, not a versioned pool). Protocols whose token already trades are never
-// ranked: they are shown apart, in the Live view, as the market's own values.
+// that passes the exclusion rules, whatever its TVL: the floor defines the watchlist, it is
+// not a ceiling on discovery — the largest pre-token protocols are the most valuable
+// discoveries, and cutting them off at the floor hid them. Liquid-staking and liquid-
+// restaking protocols are ranked: the category demonstrably launches tokens, and the other
+// exclusion rules still filter out exchange-owned and wrapped products. Bridges stay out:
+// the category's largest entries are wrapped-asset and custodial products, and no field in
+// the record separates them from the farmable few, so ranking the category would put
+// infrastructure at the top of a farming board. Protocols whose token already trades are
+// never ranked: they are shown apart, in the Live view, as the market's own values.
 
 export interface SnapshotProtocol {
   slug: string;
@@ -50,7 +55,7 @@ export interface Snapshot {
 }
 
 /** The model's label, shown on the dashboard and in the data file. */
-export const MODEL_VERSION = 'radar-2.1';
+export const MODEL_VERSION = 'radar-2.2';
 
 /** The model's constants: every one of them is stated on the dashboard's Methodology tab. */
 export const MODEL = {
@@ -67,8 +72,13 @@ export const MODEL = {
   unknown_age_days: 365,
   chain_step: 0.02,
   chain_max_extra: 4,
-  live_rows: 24,
 } as const;
+
+/** One live comparable behind a category's multiple: its name and its own mcap/TVL ratio. */
+export interface CategoryTop {
+  name: string;
+  ratio: number;
+}
 
 /** One category's evidence: how many live protocols back it, their median ratio, the multiple used. */
 export interface CategoryMultiple {
@@ -76,6 +86,8 @@ export interface CategoryMultiple {
   live_n: number;
   live_median: number;
   multiple: number;
+  /** The three largest live comparables by market cap, the evidence the multiple rests on. */
+  top: CategoryTop[];
 }
 
 /** The model's measured multiples: the global median and one entry per live category. */
@@ -183,16 +195,17 @@ export function measureMultiples(snapshot: Snapshot): Multiples {
   const live = snapshot.protocols.filter(isLive);
   const ratios = live.map((p) => p.mcap_usd! / p.tvl_usd);
   const global = median(ratios);
-  const perCategory = new Map<string, number[]>();
+  const perCategory = new Map<string, { name: string; ratio: number; mcap: number }[]>();
   for (const p of live) {
     const key = p.category ?? 'Uncategorized';
+    const entry = { name: p.name, ratio: p.mcap_usd! / p.tvl_usd, mcap: p.mcap_usd! };
     const list = perCategory.get(key);
-    if (list === undefined) perCategory.set(key, [p.mcap_usd! / p.tvl_usd]);
-    else list.push(p.mcap_usd! / p.tvl_usd);
+    if (list === undefined) perCategory.set(key, [entry]);
+    else list.push(entry);
   }
   const byCategory: CategoryMultiple[] = [...perCategory.entries()]
     .map(([category, rs]) => {
-      const med = median(rs);
+      const med = median(rs.map((r) => r.ratio));
       const n = rs.length;
       // A category multiple needs at least three live comparables: with one or two, a single
       // protocol's ratio would set the value of a whole category, so the global median is
@@ -204,7 +217,12 @@ export function measureMultiples(snapshot: Snapshot): Multiples {
               MODEL.multiple_max,
               Math.max(MODEL.multiple_min, (n * med + MODEL.shrink_prior * global) / (n + MODEL.shrink_prior)),
             );
-      return { category, live_n: n, live_median: round4(med), multiple: round4(multiple) };
+      // The evidence behind the multiple: the three largest live comparables by market cap.
+      const top = [...rs]
+        .sort((a, b) => b.mcap - a.mcap)
+        .slice(0, 3)
+        .map((r) => ({ name: r.name, ratio: round4(r.ratio) }));
+      return { category, live_n: n, live_median: round4(med), multiple: round4(multiple), top };
     })
     .sort((a, b) => (a.category < b.category ? -1 : a.category > b.category ? 1 : 0));
   return { global_median: round4(global), live_count: live.length, by_category: byCategory };
@@ -253,8 +271,9 @@ export function isPreToken(p: SnapshotProtocol): boolean {
   return p.mcap_usd === null && p.gecko_id === null && p.symbol === null;
 }
 
-/** The watchlist's own exclusion rules, applied to a protocol below the floor. */
-const EXCLUDED_CATEGORIES = new Set(['Bridge', 'Canonical Bridge', 'Liquid Staking', 'Liquid Restaking', 'Restaked BTC', 'CEX']);
+/** The exclusion rules, applied to a pre-token protocol. Bridges stay out (see the header);
+  liquid-staking and liquid-restaking are ranked since radar-2.2. */
+const EXCLUDED_CATEGORIES = new Set(['Bridge', 'Canonical Bridge', 'Restaked BTC', 'CEX']);
 const WRAPPED_WORD = /\b(wrapped|staked|staking)\b/i;
 const EXCHANGE_PREFIX = /^(Binance|Coinbase|Bybit|Kraken|Bitget|OKX|Bitfinex|Gemini)\b/;
 const VERSION_SUFFIX = /\s(V\d+(\.\d+)?|v\d+(\.\d+)?|\d+\.\d+)$/;
@@ -267,7 +286,7 @@ export function isExcluded(p: SnapshotProtocol): boolean {
   return false;
 }
 
-/** The protocols the board ranks: the whole watchlist, then the early pre-token protocols below the floor. */
+/** The protocols the board ranks: the whole watchlist, then every pre-token protocol that passes the exclusion rules, whatever its TVL. */
 export function buildBoard(snapshot: Snapshot): BoardRow[] {
   const multiples = measureMultiples(snapshot);
   const index = new Map(snapshot.protocols.map((p) => [p.slug, p]));
@@ -277,7 +296,7 @@ export function buildBoard(snapshot: Snapshot): BoardRow[] {
     if (p !== undefined) chosen.set(slug, p);
   }
   const early = snapshot.protocols
-    .filter((p) => !chosen.has(p.slug) && isPreToken(p) && p.tvl_usd < snapshot.floor_usd && !isExcluded(p))
+    .filter((p) => !chosen.has(p.slug) && isPreToken(p) && !isExcluded(p))
     .sort((a, b) => b.tvl_usd - a.tvl_usd || (a.slug < b.slug ? -1 : a.slug > b.slug ? 1 : 0));
   for (const p of early) chosen.set(p.slug, p);
 
@@ -304,12 +323,12 @@ export function buildBoard(snapshot: Snapshot): BoardRow[] {
   }));
 }
 
-/** The live-token protocols, by market cap, for the dashboard's Live view. */
+/** The live-token protocols, by market cap, for the dashboard's Live view: all of them,
+  so the tab is the full evidence set the multiples are measured from. */
 export function liveRows(snapshot: Snapshot): LiveRow[] {
   return snapshot.protocols
     .filter(isLive)
     .sort((a, b) => (b.mcap_usd ?? 0) - (a.mcap_usd ?? 0) || b.tvl_usd - a.tvl_usd)
-    .slice(0, MODEL.live_rows)
     .map((p) => ({
       slug: p.slug,
       name: p.name,
@@ -394,14 +413,28 @@ function stepText(text: string, cost: string, time: string): string {
 }
 
 /**
- * A protocol's farm plan: six steps, each an action with a cost and a time. The plan is derived
+ * A protocol's farm plan: seven steps, each an action with a cost and a time. The plan is derived
  * from the protocol's own record (category, chains, TVL, age), never from a hand-written list.
+ * Step 3 works the protocol's second chain when it has one, so a multi-chain position counts
+ * twice; on a single chain it makes a second, different qualifying move instead.
  */
 export function farmSteps(p: SnapshotProtocol, age: number | null): string[] {
   const chain = chainOf(p);
   const capital = capitalFor(p);
   const hold = holdDaysFor(age);
   const gas = gasFor(chain);
+  const second =
+    p.chains.length > 1
+      ? stepText(
+          `Repeat the same qualifying move on ${p.chains[1]} too, so the position counts on two chains instead of one`,
+          `${gasFor(p.chains[1]!).setup} on ${p.chains[1]}`,
+          '10 minutes',
+        )
+      : stepText(
+          'Make a second, different qualifying move on the same chain — a swap, a second deposit or a vote — so the wallet shows more than one kind of activity',
+          gas.setup,
+          '10 minutes',
+        );
   return [
     stepText(
       'Open a fresh wallet used only for farming this protocol, and store its seed phrase offline on paper, never in a screenshot or a chat',
@@ -409,6 +442,7 @@ export function farmSteps(p: SnapshotProtocol, age: number | null): string[] {
       '5 minutes',
     ),
     stepText(actionFor(p, capital, chain), `$${capital} of capital and ${gas.setup}`, '15 minutes to set up'),
+    second,
     stepText(
       `Once a week, make one qualifying move on ${p.name} — a small deposit, a borrow, a swap or a vote — and leave the position open between moves`,
       gas.weekly,
