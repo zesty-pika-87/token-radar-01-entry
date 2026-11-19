@@ -16,7 +16,7 @@
     </div>
   </div>
   <div class="meta">
-    <span class="pill">model <b>radar-2</b></span>
+    <span class="pill">model <b>radar-2.1</b></span>
     <span class="pill">snapshot <b id="meta-asof">—</b></span>
     <span class="pill">source <b>DefiLlama</b></span>
   </div>
@@ -60,7 +60,9 @@
   <section id="panel-live" class="panel" hidden>
     <p class="intro">These protocols already have a token that trades, so the board never ranks them. Their
     market-cap-to-TVL ratios are the evidence the model&rsquo;s category multiples are measured from —
-    the market&rsquo;s own price for one dollar of TVL.</p>
+    the market&rsquo;s own price for one dollar of TVL. The ratios shown are the raw figures exactly
+    as recorded in the DefiLlama snapshot; the model works from medians, so a single extreme value
+    cannot move a multiple on its own — Rain&rsquo;s ratio is about 400&times;, and the medians barely notice it.</p>
     <div class="tablewrap">
       <table id="live">
         <thead>
@@ -79,9 +81,12 @@
     <h3>The formula</h3>
     <p class="formula">implied&nbsp;=&nbsp;TVL&nbsp;&times;&nbsp;category&nbsp;multiple&nbsp;&times;&nbsp;growth&nbsp;&times;&nbsp;maturity&nbsp;&times;&nbsp;chain</p>
     <ul>
-      <li><b>Category multiple.</b> For each category, the median mcap/TVL ratio of the live protocols
-      in it, shrunk toward the global median with a prior of 3: <code>(n &times; median + 3 &times; global) / (n + 3)</code>,
-      clamped to [0.02, 1.0]. A category with no live protocol takes the global median.</li>
+      <li><b>Category multiple.</b> A category gets its own multiple only when at least 3 live
+      protocols in it trade: the median mcap/TVL ratio of its live protocols, shrunk toward the
+      global median with a prior of 3: <code>(n &times; median + 3 &times; global) / (n + 3)</code>,
+      clamped to [0.02, 1.0]. A category with fewer than 3 live protocols — or none — takes the
+      global median instead: one or two comparables are not enough evidence for a multiple of
+      their own, so a single small protocol cannot set the value of a whole category.</li>
       <li><b>Growth.</b> 7-day TVL change, clamped to [−50%, +100%]; multiplier <code>1 + (growth / 100) &times; 0.5</code>.</li>
       <li><b>Maturity.</b> Days from <code>listed_at</code> to the snapshot date (365 when unknown);
       multiplier <code>0.6 + min(age, 1095) / 1095 &times; 0.4</code>.</li>
@@ -110,7 +115,7 @@
 </main>
 
 <footer>
-  <p>Token Radar · model radar-2 · built from a sealed DefiLlama snapshot. Implied values are the model&rsquo;s
+  <p>Token Radar · model radar-2.1 · built from a sealed DefiLlama snapshot. Implied values are the model&rsquo;s
   own claim; farm steps are a plan, not advice, and never pay anyone to claim for you.</p>
 </footer>
 <script src="../data.js"></script>

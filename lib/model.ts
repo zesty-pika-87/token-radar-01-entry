@@ -1,4 +1,4 @@
-// radar-2: the token launch radar's model.
+// radar-2.1: the token launch radar's model.
 //
 // One sealed snapshot in, one ranked board out. Every number the model uses comes from the
 // snapshot itself: the category multiples are measured at run time from the protocols whose
@@ -8,11 +8,13 @@
 //                 not CEX, and its TVL is positive. (A recorded market cap of exactly zero is
 //                 not a traded token with a price, so it does not count as a comparable.)
 //   ratio         mcap_usd / tvl_usd, the market's own price for one dollar of TVL.
-//   multiple      for a category, the median ratio of its live protocols, shrunk toward the
-//                 global median with a prior of three: (n * median + 3 * global) / (n + 3),
-//                 then clamped to [0.02, 1.0]. A category with no live protocol takes the
-//                 global median. Thin categories are pulled toward the market average; thick
-//                 ones stand on their own evidence.
+//   multiple      for a category with at least 3 live protocols, the median ratio of its live
+//                 protocols, shrunk toward the global median with a prior of three:
+//                 (n * median + 3 * global) / (n + 3), then clamped to [0.02, 1.0]. A category
+//                 with fewer than 3 live protocols takes the global median instead: one or two
+//                 comparables are not enough evidence for a category multiple of their own, so
+//                 a single small protocol cannot set the value of a whole category. A category
+//                 with no live protocol takes the global median as well.
 //   growth        change_7d clamped to [-50, 100]; growthMult = 1 + (growth / 100) * 0.5.
 //   maturity      age in days from listed_at to as_of (unknown: 365);
 //                 maturityMult = 0.6 + min(age, 1095) / 1095 * 0.4.
@@ -48,11 +50,12 @@ export interface Snapshot {
 }
 
 /** The model's label, shown on the dashboard and in the data file. */
-export const MODEL_VERSION = 'radar-2';
+export const MODEL_VERSION = 'radar-2.1';
 
 /** The model's constants: every one of them is stated on the dashboard's Methodology tab. */
 export const MODEL = {
   shrink_prior: 3,
+  min_category_live: 3,
   multiple_min: 0.02,
   multiple_max: 1.0,
   growth_weight: 0.5,
@@ -191,8 +194,16 @@ export function measureMultiples(snapshot: Snapshot): Multiples {
     .map(([category, rs]) => {
       const med = median(rs);
       const n = rs.length;
-      const shrunk = (n * med + MODEL.shrink_prior * global) / (n + MODEL.shrink_prior);
-      const multiple = Math.min(MODEL.multiple_max, Math.max(MODEL.multiple_min, shrunk));
+      // A category multiple needs at least three live comparables: with one or two, a single
+      // protocol's ratio would set the value of a whole category, so the global median is
+      // used instead. At n >= 3 the median is shrunk toward the global median as before.
+      const multiple =
+        n < MODEL.min_category_live
+          ? Math.min(MODEL.multiple_max, Math.max(MODEL.multiple_min, global))
+          : Math.min(
+              MODEL.multiple_max,
+              Math.max(MODEL.multiple_min, (n * med + MODEL.shrink_prior * global) / (n + MODEL.shrink_prior)),
+            );
       return { category, live_n: n, live_median: round4(med), multiple: round4(multiple) };
     })
     .sort((a, b) => (a.category < b.category ? -1 : a.category > b.category ? 1 : 0));

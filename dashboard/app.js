@@ -48,7 +48,7 @@
 
   /* ---- header stats ---- */
   $('meta-asof').textContent = R.as_of;
-  $('source-line').textContent = 'Snapshot: ' + R.source + ' · Floor: ' + fmtMoney(R.floor_usd) + ' · Model radar-2.';
+  $('source-line').textContent = 'Snapshot: ' + R.source + ' · Floor: ' + fmtMoney(R.floor_usd) + ' · Model ' + R.model_version + '.';
   var stats = [
     { n: R.watchlist_size + '/' + R.watchlist_size, l: 'watchlist protocols covered' },
     { n: String(R.board_size), l: 'rows on the board (' + R.watchlist_size + ' watchlist + ' + R.early_size + ' early)' },
@@ -124,7 +124,13 @@
     var mult = null;
     R.multiples.by_category.forEach(function (e) { if (e.category === (r.category || 'Uncategorized')) mult = e; });
     var ev;
-    if (mult) {
+    if (mult && mult.live_n < 3) {
+      ev = 'Category <b>' + esc(r.category || 'Uncategorized') + '</b>: only <b>' + mult.live_n + '</b> live protocol' +
+        (mult.live_n === 1 ? ' trades' : 's trade') + ' (median mcap/TVL <b>' + dec(mult.live_median, 3) +
+        '×</b>), too few for a category multiple of their own — at least 3 are needed — so the ' +
+        'global median <b>' + dec(R.multiples.global_median, 3) + '×</b> is used as the multiple <b>' +
+        dec(m.category_multiple, 3) + '×</b>.';
+    } else if (mult) {
       ev = 'Category <b>' + esc(r.category || 'Uncategorized') + '</b>: <b>' + mult.live_n + '</b> live protocol' +
         (mult.live_n === 1 ? ' trades' : 's trade') + ' at a median mcap/TVL of <b>' + dec(mult.live_median, 3) +
         '×</b>; shrunk toward the global median <b>' + dec(R.multiples.global_median, 3) + '×</b> with a prior of 3, ' +
